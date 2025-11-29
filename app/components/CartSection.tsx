@@ -77,6 +77,7 @@ export default function CartSection() {
     const { cart, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [showMap, setShowMap] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const deliveryFee = 20;
     const total = totalPrice + deliveryFee;
@@ -90,29 +91,35 @@ export default function CartSection() {
     };
 
     const onSubmit = async (data: CheckoutFormData) => {
-        const orderData = {
-            ...data,
-            latitude: location?.lat,
-            longitude: location?.lng,
-            items: cart,
-            subtotal: totalPrice,
-            deliveryFee,
-            total
-        };
-        console.log(orderData);
-        const result = await sendToDb(orderData);
-        if (result.success) {
-            toast.success('تم إرسال الطلب بنجاح');
-            reset();
-            clearCart();
-            setLocation(null);
-            setShowMap(false);
-
-        } else {
-            console.error('Error submitting order:', result.error);
-            toast.error('حدث خطأ أثناء إرسال الطلب');
+        setLoading(true);
+        try {
+            const orderData = {
+                ...data,
+                latitude: location?.lat,
+                longitude: location?.lng,
+                items: cart,
+                subtotal: totalPrice,
+                deliveryFee,
+                total
+            };
+            console.log(orderData);
+            const result = await sendToDb(orderData);
+            if (result.success) {
+                toast.success('تم إرسال الطلب بنجاح');
+                reset();
+                clearCart();
+                setLocation(null);
+                setShowMap(false);
+            } else {
+                console.error('Error submitting order:', result.error);
+                toast.error('حدث خطأ أثناء إرسال الطلب');
+            }
+        } catch (err) {
+            console.error('Unexpected error submitting order:', err);
+            toast.error('حدث خطأ غير متوقع أثناء إرسال الطلب');
+        } finally {
+            setLoading(false);
         }
-
     };
 
     return (
@@ -341,8 +348,23 @@ export default function CartSection() {
                                     {/* Submit Button */}
                                     <button
                                         type="submit"
-                                        className="w-full bg-[#ff8000] hover:bg-[#e67300] text-white font-bold py-4 rounded-full transition-colors shadow-lg hover:shadow-xl"
+                                        disabled={loading}
+                                        aria-busy={loading}
+                                        aria-disabled={loading}
+                                        className="w-full bg-[#ff8000] hover:bg-[#e67300] text-white font-bold py-4 rounded-full transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                                     >
+                                        {loading && (
+                                            <svg
+                                                className="animate-spin h-5 w-5 text-white"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                aria-hidden="true"
+                                            >
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                            </svg>
+                                        )}
                                         تأكيد الطلب ({total} ج.م)
                                     </button>
                                 </form>
