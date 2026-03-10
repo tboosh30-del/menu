@@ -99,8 +99,8 @@ export default function SpecialOffers() {
                                 <button
                                     onClick={() => handleAddToCart(offer)}
                                     className={`w-full font-bold py-3 rounded-full transition-all ${addedOfferId === offer.id
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-[#ff8000] hover:bg-[#e67300] text-white group-hover:shadow-md'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-[#ff8000] hover:bg-[#e67300] text-white group-hover:shadow-md'
                                         }`}
                                 >
                                     {addedOfferId === offer.id ? '✓ تمت الإضافة' : 'اطلب الآن'}

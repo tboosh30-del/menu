@@ -2,10 +2,14 @@
 
 @theme inline {
   --font-sans: var(--font-cairo);
+  --color-background: #ffff;
+  --color-foreground: black;
+  --color-primary: #ff8000;
+  --color-primary-foreground: white;
 }
 
 body {
-  background: white;
-  color: #111827;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   font-family: var(--font-cairo), Arial, sans-serif;
 }
