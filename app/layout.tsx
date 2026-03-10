@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={`${cairo.variable} font-sans antialiased bg-white`}>
+      <body className={`${cairo.variable} font-sans antialiased bg-[#fcf4e4]`}>
         <QueryProvider>
           <CartProvider>
             <Navbar />

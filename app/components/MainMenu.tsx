@@ -162,9 +162,9 @@ function MainMenu() {
                         <p className="text-gray-600 text-xl">لا توجد أصناف في هذه الفئة</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-center">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-center">
                         {filteredItems.map((item) => (
-                            <div key={item.id} className="flex flex-col h-full rounded-2xl overflow-hidden group w-[300px] lg:w-auto mx-auto">
+                            <div key={item.id} className="flex flex-col h-full rounded-2xl overflow-hidden group sm:w-[300px] md:w-auto  mx-auto">
                                 <div className="relative h-48 w-full shrink-0 overflow-hidden">
                                     <Image
                                         src={item.image}

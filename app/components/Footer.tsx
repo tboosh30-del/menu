@@ -1,13 +1,14 @@
 import { Instagram, Facebook } from 'lucide-react';
 
 export default function Footer() {
+    const data = new Date().getFullYear();
     return (
-        <footer className="bg-white border-t border-gray-200 py-8">
+        <footer className="bg-[#fcf4e4] py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     {/* Copyright */}
-                    <p className="text-gray-600 text-center md:text-right">
-                        © 2024 دمشق ستور. جميع الحقوق محفوظة
+                    <p className="text-gray-600 text-center md:text-right"> 
+                        جميع الحقوق محفوظة لمطعم طبوش © {data}
                     </p>
 
                     {/* Social Icons */}
