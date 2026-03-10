@@ -164,7 +164,7 @@ function MainMenu() {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-center">
                         {filteredItems.map((item) => (
-                            <div key={item.id} className="flex flex-col h-full rounded-2xl border border-gray-100 overflow-hidden group w-[300px] lg:w-auto mx-auto">
+                            <div key={item.id} className="flex flex-col h-full rounded-2xl overflow-hidden group w-[300px] lg:w-auto mx-auto">
                                 <div className="relative h-48 w-full shrink-0 overflow-hidden">
                                     <Image
                                         src={item.image}
@@ -176,7 +176,7 @@ function MainMenu() {
                                     />
                                 </div>
 
-                                <div className="p-4 flex flex-col flex-grow bg-white">
+                                <div className="p-4 flex flex-col flex-grow bg-white border border-gray-100">
                                     <h3 className="text-xl font-bold text-gray-900 text-right w-full mb-2">{item.name}</h3>
                                     <p className="text-gray-600 text-sm text-right leading-relaxed mb-4 flex-grow">{item.description}</p>
                                     <span className="text-2xl font-bold text-[#ff8000] text-center mt-auto block">{item.price} ج.م</span>
