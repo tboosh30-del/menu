@@ -1,122 +1,65 @@
 'use client';
-import { supabase } from '../supabase/supabase';
-import { useForm } from 'react-hook-form';
-import { Package, Trash2, ShoppingCart, MapPin, Plus, Minus } from 'lucide-react';
-import Image from 'next/image';
+
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
-import { CartItem, useCart } from '../context/CartContext';
+import { supabase } from '../supabase/supabase';
+import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
 
-const LocationMap = dynamic(() => import('./LocationMap'), {
-    ssr: false,
-    loading: () => (
-        <div className="w-full h-[400px] bg-[#ff8000]/10 rounded-lg flex items-center justify-center">
-            <MapPin className="w-12 h-12 text-[#ff8000]/50 animate-pulse" />
-        </div>
-    )
-});
+import EmptyCart from './cart/EmptyCart';
+import CartItemCard from './cart/CartItemCard';
+import OrderSummary from './cart/OrderSummary';
+import CheckoutForm, { CheckoutFormData } from './cart/CheckoutForm';
 
+// --- API ---
 async function sendToDb(orderData: CheckoutFormData) {
-    // 1. Map your JS object keys to the Database column names
-    const { data, error } = await supabase
+    const { error } = await supabase
         .from('online_orders')
         .insert([
             {
                 full_name: orderData.fullName,
                 phone: orderData.phone,
                 address: orderData.address,
-
-                // Handle coordinates: if undefined, send null
                 latitude: orderData.latitude || null,
                 longitude: orderData.longitude || null,
-
-                items: orderData.items, // Arrays save directly into JSONB columns
+                items: orderData.items,
                 notes: orderData.notes,
-
                 payment_method: orderData.paymentMethod,
                 subtotal: orderData.subtotal,
                 delivery_fee: orderData.deliveryFee,
                 total: orderData.total,
-
-                status: 'pending' // Default status
+                status: 'pending'
             }
-        ])
+        ]);
     if (error) {
-        console.error('Error creating order:', error)
-        return { success: false, error }
+        console.error('Error creating order:', error);
+        return { success: false, error };
     }
-
-    return { success: true }
+    return { success: true };
 }
 
-
-interface CheckoutFormData {
-    fullName: string;
-    phone: string;
-    address: string;
-    paymentMethod: 'cash' | 'card';
-    notes?: string;
-    latitude?: number;
-    longitude?: number;
-    items: CartItem[];
-    subtotal: number;
-    deliveryFee: number;
-    total: number;
-}
-
+// --- Main Component ---
 export default function CartSection() {
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-        setValue,
-        reset
-    } = useForm<CheckoutFormData>();
-
     const { cart, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
-    const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-    const [showMap, setShowMap] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const deliveryFee = 20;
-    const total = totalPrice + deliveryFee;
+    const deliveryFee = 0;
+    const total = totalPrice;
 
-    const handleLocationSelect = (lat: number, lng: number) => {
-        setLocation({ lat, lng });
-    };
-
-    const handleAddressFound = (address: string) => {
-        setValue('address', address);
-    };
-
-    const onSubmit = async (data: CheckoutFormData) => {
+    const handleOrderSubmit = async (data: CheckoutFormData) => {
         setLoading(true);
         try {
-            let finalAddress = data.address;
-            if (location) {
-                const mapsLink = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
-                finalAddress = `${finalAddress}\n\nرابط الموقع على جوجل ماب:\n${mapsLink}`;
-            }
-
             const orderData = {
                 ...data,
-                address: finalAddress,
-                latitude: location?.lat,
-                longitude: location?.lng,
+                paymentMethod: 'cash' as const,
                 items: cart,
                 subtotal: totalPrice,
                 deliveryFee,
                 total
             };
-            console.log(orderData);
             const result = await sendToDb(orderData);
             if (result.success) {
                 toast.success('تم إرسال الطلب بنجاح');
-                reset();
                 clearCart();
-                setLocation(null);
-                setShowMap(false);
             } else {
                 console.error('Error submitting order:', result.error);
                 toast.error('حدث خطأ أثناء إرسال الطلب');
@@ -137,248 +80,26 @@ export default function CartSection() {
                 </h2>
 
                 {cart.length === 0 ? (
-                    <div className="text-center py-16 rounded-xl bg-[#fcf4e4] border border-[#ff8000]/20 shadow-sm">
-                        <div className="w-24 h-24 mx-auto bg-[#ff8000]/10 rounded-full flex items-center justify-center mb-6">
-                            <ShoppingCart className="w-12 h-12 text-[#ff8000]" />
-                        </div>
-                        <p className="text-2xl font-bold text-black">سلتك فارغة</p>
-                        <p className="text-black/60 mt-2">أضف بعض الأصناف من القائمة أعلاه</p>
-                    </div>
+                    <EmptyCart />
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Cart Items Section */}
                         <div className="lg:col-span-2 space-y-4">
                             {cart.map((item) => (
-                                <div
+                                <CartItemCard
                                     key={item.id}
-                                    className="bg-[#F3F4F6] rounded-xl p-4 flex gap-4 items-center border border-[#ff8000]/20 shadow-sm"
-                                >
-                                    <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                                        <Image
-                                            src={item.image}
-                                            alt={item.name}
-                                            fill
-                                            className="object-cover"
-                                        />
-                                    </div>
-
-                                    <div className="flex-1 text-right">
-                                        <h3 className="font-bold text-lg text-black">{item.name}</h3>
-                                        <p className="text-[#ff8000] font-bold">{item.price} ج.م</p>
-                                    </div>
-
-                                    {/* Quantity Controls */}
-                                    <div className="flex items-center gap-2 bg-[#ff8000]/10 rounded-lg p-1 border border-[#ff8000]/20">
-                                        <button
-                                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                            className="p-1 hover:bg-white text-[#ff8000] rounded transition-colors"
-                                        >
-                                            <Minus className="w-4 h-4" />
-                                        </button>
-                                        <span className="w-8 text-center font-bold text-black">{item.quantity}</span>
-                                        <button
-                                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                            className="p-1 hover:bg-white text-[#ff8000] rounded transition-colors"
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                        </button>
-                                    </div>
-
-                                    <button
-                                        onClick={() => removeFromCart(item.id)}
-                                        className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                </div>
+                                    item={item}
+                                    onUpdateQuantity={updateQuantity}
+                                    onRemove={removeFromCart}
+                                />
                             ))}
-
-                            {/* Order Summary */}
-                            <div className="bg-[#F3F4F6] rounded-xl p-6 border border-[#ff8000]/20 shadow-sm">
-                                <div className="space-y-3 text-right">
-                                    <div className="flex justify-between text-black/80">
-                                        <span className="font-bold">{totalPrice} ج.م</span>
-                                        <span>المجموع الفرعي</span>
-                                    </div>
-                                    <div className="flex justify-between text-black/80">
-                                        <span className="font-bold">{deliveryFee} ج.م</span>
-                                        <span>رسوم التوصيل</span>
-                                    </div>
-                                    <div className="border-t border-[#ff8000]/20 pt-3 flex justify-between text-xl font-bold text-black">
-                                        <span className="text-[#ff8000]">{total} ج.م</span>
-                                        <span>الإجمالي</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <OrderSummary total={total} />
                         </div>
 
-                        {/* Checkout Form Section */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-[#F3F4F6] rounded-xl p-6 sticky top-24 border border-[#ff8000]/20 shadow-sm">
-                                <div className="flex items-center gap-2 mb-6">
-                                    <Package className="w-6 h-6 text-[#ff8000]" />
-                                    <h2 className="text-2xl font-bold text-black">إتمام الطلب</h2>
-                                </div>
-
-                                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                                    {/* Full Name */}
-                                    <div>
-                                        <label className="block text-right text-black font-bold mb-2">
-                                            الاسم الكامل <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            {...register('fullName', {
-                                                required: 'الاسم مطلوب',
-                                                minLength: { value: 3, message: 'الاسم يجب أن يكون 3 أحرف على الأقل' }
-                                            })}
-                                            className="w-full px-4 py-3 border-2 border-[#ff8000]/20 bg-[#fcf4e4]/50 rounded-lg text-right focus:border-[#ff8000] focus:outline-none focus:bg-white transition-colors"
-                                            placeholder="أدخل اسمك الكامل"
-                                        />
-                                        {errors.fullName && (
-                                            <p className="text-red-500 text-sm mt-1 text-right">{errors.fullName.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Phone */}
-                                    <div>
-                                        <label className="block text-right text-black font-bold mb-2">
-                                            رقم الهاتف <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            {...register('phone', {
-                                                required: 'رقم الهاتف مطلوب',
-                                                pattern: {
-                                                    value: /^[0-9]{11}$/,
-                                                    message: 'رقم الهاتف يجب أن يكون 11 رقم'
-                                                }
-                                            })}
-                                            className="w-full px-4 py-3 border-2 border-[#ff8000]/20 bg-[#fcf4e4]/50 rounded-lg text-right focus:border-[#ff8000] focus:outline-none focus:bg-white transition-colors"
-                                            placeholder="01xxxxxxxxx"
-                                        />
-                                        {errors.phone && (
-                                            <p className="text-red-500 text-sm mt-1 text-right">{errors.phone.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Payment Method */}
-                                    <div>
-                                        <label className="block text-right text-black font-bold mb-2">
-                                            طريقة الدفع <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="space-y-2">
-                                            <label className="flex items-center justify-end gap-2 p-3 border-2 border-[#ff8000]/20 bg-[#fcf4e4]/50 rounded-lg cursor-pointer hover:border-[#ff8000] hover:bg-white transition-colors">
-                                                <span className="text-black/80">كاش عند الاستلام</span>
-                                                <input
-                                                    type="radio"
-                                                    value="cash"
-                                                    {...register('paymentMethod', { required: 'اختر طريقة الدفع' })}
-                                                    className="w-4 h-4 text-[#ff8000] focus:ring-[#ff8000]"
-                                                    defaultChecked
-                                                />
-                                            </label>
-                                            <label className="flex items-center justify-end gap-2 p-3 border-2 border-[#ff8000]/20 bg-[#fcf4e4]/50 rounded-lg cursor-pointer hover:border-[#ff8000] hover:bg-white transition-colors">
-                                                <span className="text-black/80">بطاقة ائتمان</span>
-                                                <input
-                                                    type="radio"
-                                                    value="card"
-                                                    {...register('paymentMethod', { required: 'اختر طريقة الدفع' })}
-                                                    className="w-4 h-4 text-[#ff8000] focus:ring-[#ff8000]"
-                                                />
-                                            </label>
-                                        </div>
-                                        {errors.paymentMethod && (
-                                            <p className="text-red-500 text-sm mt-1 text-right">{errors.paymentMethod.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Location Map */}
-                                    <div>
-                                        <label className="block text-right text-black font-bold mb-2">
-                                            تحديد الموقع على الخريطة
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowMap(!showMap)}
-                                            className="w-full mb-3 bg-[#ff8000]/10 hover:bg-[#ff8000]/20 text-[#ff8000] font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <MapPin className="w-5 h-5" />
-                                            {showMap ? 'إخفاء الخريطة' : 'إظهار الخريطة'}
-                                        </button>
-
-                                        {showMap && (
-                                            <div className="mb-3">
-                                                <LocationMap
-                                                    onLocationSelect={handleLocationSelect}
-                                                    onAddressFound={handleAddressFound}
-                                                />
-                                                {location && (
-                                                    <p className="text-sm text-black/80 mt-2 text-right">
-                                                        📍 تم تحديد الموقع: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Address */}
-                                    <div>
-                                        <label className="block text-right text-black font-bold mb-2">
-                                            العنوان بالتفصيل <span className="text-red-500">*</span>
-                                        </label>
-                                        <textarea
-                                            {...register('address', {
-                                                required: 'العنوان مطلوب',
-                                                minLength: { value: 10, message: 'العنوان يجب أن يكون مفصلاً أكثر' }
-                                            })}
-                                            rows={3}
-                                            className="w-full px-4 py-3 border-2 border-[#ff8000]/20 bg-[#fcf4e4]/50 rounded-lg text-right focus:border-[#ff8000] focus:outline-none focus:bg-white transition-colors resize-none"
-                                            placeholder="الشارع، رقم المبنى، الدور..."
-                                        />
-                                        {errors.address && (
-                                            <p className="text-red-500 text-sm mt-1 text-right">{errors.address.message}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Notes */}
-                                    <div>
-                                        <label className="block text-right text-black font-bold mb-2">
-                                            ملاحظات (اختياري)
-                                        </label>
-                                        <textarea
-                                            {...register('notes')}
-                                            rows={2}
-                                            className="w-full px-4 py-3 border-2 border-[#ff8000]/20 bg-[#fcf4e4]/50 rounded-lg text-right focus:border-[#ff8000] focus:outline-none focus:bg-white transition-colors resize-none"
-                                            placeholder="أي طلبات خاصة..."
-                                        />
-                                    </div>
-
-                                    {/* Submit Button */}
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        aria-busy={loading}
-                                        aria-disabled={loading}
-                                        className="w-full bg-[#ff8000] hover:bg-[#e67300] text-white font-bold py-4 rounded-full transition-colors  hover: disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                                    >
-                                        {loading && (
-                                            <svg
-                                                className="animate-spin h-5 w-5 text-white"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                aria-hidden="true"
-                                            >
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                            </svg>
-                                        )}
-                                        تأكيد الطلب ({total} ج.م)
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+                        <CheckoutForm
+                            total={total}
+                            loading={loading}
+                            onSubmit={handleOrderSubmit}
+                        />
                     </div>
                 )}
             </div>

@@ -107,7 +107,7 @@ function MainMenu() {
 
     if (isLoading) {
         return (
-            <section className="bg-white py-16">
+            <section className="bg-[#fcf4e4] py-16">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-8">
                         القائمة الرئيسية
@@ -162,10 +162,10 @@ function MainMenu() {
                         <p className="text-gray-600 text-xl">لا توجد أصناف في هذه الفئة</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-center">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 items-center">
                         {filteredItems.map((item) => (
-                            <div key={item.id} className="flex flex-col h-full rounded-2xl overflow-hidden group sm:w-[300px] md:w-auto  mx-auto">
-                                <div className="relative h-48 w-full shrink-0 overflow-hidden">
+                            <div key={item.id} className="flex flex-col h-full rounded-xl md:rounded-2xl overflow-hidden group w-full">
+                                <div className="relative h-32 md:h-48 w-full shrink-0 overflow-hidden">
                                     <Image
                                         src={item.image}
                                         alt={item.name}
@@ -176,24 +176,24 @@ function MainMenu() {
                                     />
                                 </div>
 
-                                <div className="p-4 flex flex-col flex-grow bg-white border border-gray-100">
-                                    <h3 className="text-xl font-bold text-gray-900 text-right w-full mb-2">{item.name}</h3>
-                                    <p className="text-gray-600 text-sm text-right leading-relaxed mb-4 flex-grow">{item.description}</p>
-                                    <span className="text-2xl font-bold text-[#ff8000] text-center mt-auto block">{item.price} ج.م</span>
+                                <div className="p-2 md:p-4 flex flex-col flex-grow bg-white border border-gray-100">
+                                    <h3 className="text-base md:text-xl font-bold text-gray-900 text-right w-full mb-1 md:mb-2">{item.name}</h3>
+                                    <p className="text-gray-600 text-[10px] md:text-sm text-right leading-relaxed mb-2 md:mb-4 flex-grow line-clamp-2 md:line-clamp-none">{item.description}</p>
+                                    <span className="text-lg md:text-2xl font-bold text-[#ff8000] text-center mt-auto block">{item.price} ج.م</span>
                                 </div>
 
-                                <div className="bg-[#ff8000] py-4 px-6 flex justify-between items-center text-white shrink-0 mt-2 select-none rounded-b-3xl">
-                                    <button onClick={() => handleDecrement(item)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#ff8000] hover:bg-gray-100 transition-colors focus:outline-none">
-                                        <Minus strokeWidth={4} size={24} />
+                                <div className="bg-[#ff8000] py-2 px-3 md:py-4 md:px-6 flex justify-between items-center text-white shrink-0 mt-1 md:mt-2 select-none rounded-b-xl md:rounded-b-3xl">
+                                    <button onClick={() => handleDecrement(item)} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white flex items-center justify-center text-[#ff8000] hover:bg-gray-100 transition-colors focus:outline-none">
+                                        <Minus strokeWidth={4} size={20} className="md:w-6 md:h-6" />
                                     </button>
-                                    <span className="text-3xl font-bold">{getItemQuantity(item.id)}</span>
-                                    <button onClick={() => handleIncrement(item)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#ff8000] hover:bg-gray-100 transition-colors focus:outline-none">
-                                        <Plus strokeWidth={4} size={24} />
+                                    <span className="text-xl md:text-3xl font-bold">{getItemQuantity(item.id)}</span>
+                                    <button onClick={() => handleIncrement(item)} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white flex items-center justify-center text-[#ff8000] hover:bg-gray-100 transition-colors focus:outline-none">
+                                        <Plus strokeWidth={4} size={20} className="md:w-6 md:h-6" />
                                     </button>
                                 </div>
 
-                                <div className="bg-[#fcf4e4] py-2">
-                                    <p className="text-center text-[#ff8000] font-bold text-sm">اضغط على + لإضافة عنصر</p>
+                                <div className="bg-[#fcf4e4] py-1 md:py-2">
+                                    <p className="text-center text-[#ff8000] font-bold text-[10px] md:text-sm">اضغط على + لإضافة عنصر</p>
                                 </div>
                             </div>
                         ))}
