@@ -10,8 +10,8 @@ import { Toaster } from 'react-hot-toast';
 const cairo = Cairo({ subsets: ['arabic'], variable: '--font-cairo' });
 
 export const metadata: Metadata = {
-  title: "دمشق ستور - مطعم سوري",
-  description: "أفضل المأكولات السورية",
+  title: "مطعم طبوش - أفضل المأكولات السورية",
+  description: "اطلب الآن من مطعم طبوش واستمتع بأشهى المأكولات السورية الأصلية",
 };
 
 export default function RootLayout({

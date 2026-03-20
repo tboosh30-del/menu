@@ -15,7 +15,7 @@ export interface MenuItem {
     name: string;
     description: string;
     price: number;
-    category: 'syrian' | 'broasted' | 'rice' | 'pasta';
+    category: 'syrian' | 'broasted' | 'pasta';
     image: string;
 }
 
@@ -28,13 +28,12 @@ interface DbItem {
     image: string | null;
 }
 
-type Category = 'all' | 'syrian' | 'broasted' | 'rice' | 'pasta';
+type Category = 'all' | 'syrian' | 'broasted' | 'pasta';
 
 const categories = [
     { id: 'all', name: 'الكل' },
     { id: 'syrian', name: 'سوري' },
     { id: 'broasted', name: 'بروست' },
-    { id: 'rice', name: 'أرز' },
     { id: 'pasta', name: 'مكرونة' }
 ];
 
@@ -45,12 +44,26 @@ async function fetchMenuItems(): Promise<MenuItem[]> {
         throw new Error(error.message);
     }
 
+    const mapCategory = (dbCat: string | null | undefined): MenuItem['category'] => {
+        if (!dbCat) return 'syrian';
+        const cleaned = dbCat.trim();
+        if (cleaned === 'مكرونة') return 'pasta';
+        if (cleaned === 'بروست') return 'broasted';
+        if (cleaned === 'سورى' || cleaned === 'سوري') return 'syrian';
+        
+        const lower = cleaned.toLowerCase();
+        if (['syrian', 'broasted', 'rice', 'pasta'].includes(lower)) {
+            return lower as MenuItem['category'];
+        }
+        return 'syrian';
+    };
+
     return data.map((item: DbItem) => ({
         id: item.id,
         name: item.name,
         description: item.description || 'لا يوجد وصف',
         price: item.current_price,
-        category: (item.category?.toLowerCase() || 'syrian') as MenuItem['category'],
+        category: mapCategory(item.category),
         image: item.image || FALLBACK_IMAGE
     }));
 }
