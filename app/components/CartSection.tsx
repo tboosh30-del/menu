@@ -50,7 +50,7 @@ export default function CartSection() {
         try {
             const orderData = {
                 ...data,
-                paymentMethod: 'cash' as const,
+                paymentMethod: data.paymentMethod,
                 items: cart,
                 subtotal: totalPrice,
                 deliveryFee,

@@ -2,9 +2,10 @@
 
 import { useForm } from 'react-hook-form';
 import { Package, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { CartItem } from '../../context/CartContext';
+import { supabase } from '../../supabase/supabase';
 
 const LocationMap = dynamic(() => import('../LocationMap'), {
     ssr: false,
@@ -18,8 +19,8 @@ const LocationMap = dynamic(() => import('../LocationMap'), {
 export interface CheckoutFormData {
     fullName: string;
     phone: string;
-    address: string;
-    paymentMethod: 'cash';
+    address?: string;
+    paymentMethod: 'cash' | 'pickup';
     notes?: string;
     latitude?: number;
     longitude?: number;
@@ -41,10 +42,57 @@ export default function CheckoutForm({ total, loading, onSubmit }: CheckoutFormP
         handleSubmit,
         formState: { errors },
         setValue,
-    } = useForm<CheckoutFormData>();
+        watch,
+    } = useForm<CheckoutFormData>({
+        defaultValues: {
+            paymentMethod: 'cash',
+        }
+    });
 
+    const paymentMethod = watch('paymentMethod');
+    const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
+    const [isLoadingStatus, setIsLoadingStatus] = useState(true);
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [showMap, setShowMap] = useState(false);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchStatus = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('store_settings')
+                    .select('is_accepting_orders')
+                    .single();
+                
+                if (data && !error && isMounted) {
+                    setIsAcceptingOrders(data.is_accepting_orders);
+                }
+            } catch (err) {
+                console.error('Error fetching store status:', err);
+            } finally {
+                if (isMounted) setIsLoadingStatus(false);
+            }
+        };
+
+        fetchStatus();
+
+        const channel = supabase.channel('store_settings_changes')
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'store_settings' },
+                (payload) => {
+                    if (payload.new && 'is_accepting_orders' in payload.new) {
+                        setIsAcceptingOrders(payload.new.is_accepting_orders);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            isMounted = false;
+            supabase.removeChannel(channel);
+        };
+    }, []);
 
     const handleLocationSelect = (lat: number, lng: number) => {
         setLocation({ lat, lng });
@@ -56,7 +104,7 @@ export default function CheckoutForm({ total, loading, onSubmit }: CheckoutFormP
 
     const handleFormSubmit = (data: CheckoutFormData) => {
         let finalAddress = data.address;
-        if (location) {
+        if (location && data.paymentMethod === 'cash') {
             const mapsLink = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
             finalAddress = `${finalAddress}\n\nرابط الموقع على جوجل ماب:\n${mapsLink}`;
         }
@@ -76,7 +124,47 @@ export default function CheckoutForm({ total, loading, onSubmit }: CheckoutFormP
                     <h2 className="text-2xl font-bold text-black">إتمام الطلب</h2>
                 </div>
 
-                <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+                {isLoadingStatus ? (
+                    <div className="flex justify-center py-8">
+                        <svg className="animate-spin h-8 w-8 text-[#ff8000]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                    </div>
+                ) : !isAcceptingOrders ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <p className="text-red-600 font-bold text-lg mb-2">عذراً، لا يمكننا استقبال الطلبات حالياً</p>
+                        <p className="text-red-500">نعتذر عن استقبال الطلبات في الوقت الحالي نظراً لضغط العمل أو انتهاء أوقات العمل الرسمية. يرجى المحاولة في وقت لاحق.</p>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+                        {/* Payment Method */}
+                        <div>
+                            <label className="block text-right text-black font-bold mb-3">
+                                طريقة الاستلام <span className="text-red-500">*</span>
+                            </label>
+                            <div className="flex gap-4 flex-row-reverse">
+                                <label className="flex-1 flex items-center justify-end gap-2 p-3 border-2 rounded-lg cursor-pointer transition-colors hover:bg-white has-[:checked]:border-[#ff8000] has-[:checked]:bg-[#fcf4e4]/50">
+                                    <span className="text-right font-medium">الدفع عند الاستلام (توصيل)</span>
+                                    <input
+                                        type="radio"
+                                        value="cash"
+                                        {...register('paymentMethod')}
+                                        className="w-4 h-4 text-[#ff8000] focus:ring-[#ff8000]"
+                                    />
+                                </label>
+                                <label className="flex-1 flex items-center justify-end gap-2 p-3 border-2 rounded-lg cursor-pointer transition-colors hover:bg-white has-[:checked]:border-[#ff8000] has-[:checked]:bg-[#fcf4e4]/50">
+                                    <span className="text-right font-medium">الاستلام من المحل</span>
+                                    <input
+                                        type="radio"
+                                        value="pickup"
+                                        {...register('paymentMethod')}
+                                        className="w-4 h-4 text-[#ff8000] focus:ring-[#ff8000]"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+
                     {/* Full Name */}
                     <div>
                         <label className="block text-right text-black font-bold mb-2">
@@ -119,52 +207,56 @@ export default function CheckoutForm({ total, loading, onSubmit }: CheckoutFormP
                     </div>
 
                     {/* Location Map */}
-                    <div>
-                        <label className="block text-right text-black font-bold mb-2">
-                            تحديد الموقع على الخريطة
-                        </label>
-                        <button
-                            type="button"
-                            onClick={() => setShowMap(!showMap)}
-                            className="w-full mb-3 bg-[#ff8000]/10 hover:bg-[#ff8000]/20 text-[#ff8000] font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            <MapPin className="w-5 h-5" />
-                            {showMap ? 'إخفاء الخريطة' : 'إظهار الخريطة'}
-                        </button>
+                    {paymentMethod === 'cash' && (
+                        <div>
+                            <label className="block text-right text-black font-bold mb-2">
+                                تحديد الموقع على الخريطة
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setShowMap(!showMap)}
+                                className="w-full mb-3 bg-[#ff8000]/10 hover:bg-[#ff8000]/20 text-[#ff8000] font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <MapPin className="w-5 h-5" />
+                                {showMap ? 'إخفاء الخريطة' : 'إظهار الخريطة'}
+                            </button>
 
-                        {showMap && (
-                            <div className="mb-3">
-                                <LocationMap
-                                    onLocationSelect={handleLocationSelect}
-                                    onAddressFound={handleAddressFound}
-                                />
-                                {location && (
-                                    <p className="text-sm text-black/80 mt-2 text-right">
-                                        📍 تم تحديد الموقع: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                            {showMap && (
+                                <div className="mb-3">
+                                    <LocationMap
+                                        onLocationSelect={handleLocationSelect}
+                                        onAddressFound={handleAddressFound}
+                                    />
+                                    {location && (
+                                        <p className="text-sm text-black/80 mt-2 text-right">
+                                            📍 تم تحديد الموقع: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Address */}
-                    <div>
-                        <label className="block text-right text-black font-bold mb-2">
-                            العنوان بالتفصيل <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                            {...register('address', {
-                                required: 'العنوان مطلوب',
-                                minLength: { value: 10, message: 'العنوان يجب أن يكون مفصلاً أكثر' }
-                            })}
-                            rows={3}
-                            className="w-full px-4 py-3 border-2 border-[#ff8000]/20 bg-[#fcf4e4]/50 rounded-lg text-right focus:border-[#ff8000] focus:outline-none focus:bg-white transition-colors resize-none"
-                            placeholder="الشارع، رقم المبنى، الدور..."
-                        />
-                        {errors.address && (
-                            <p className="text-red-500 text-sm mt-1 text-right">{errors.address.message}</p>
-                        )}
-                    </div>
+                    {paymentMethod === 'cash' && (
+                        <div>
+                            <label className="block text-right text-black font-bold mb-2">
+                                العنوان بالتفصيل <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                {...register('address', {
+                                    required: paymentMethod === 'cash' ? 'العنوان مطلوب' : false,
+                                    minLength: paymentMethod === 'cash' ? { value: 10, message: 'العنوان يجب أن يكون مفصلاً أكثر' } : undefined
+                                })}
+                                rows={3}
+                                className="w-full px-4 py-3 border-2 border-[#ff8000]/20 bg-[#fcf4e4]/50 rounded-lg text-right focus:border-[#ff8000] focus:outline-none focus:bg-white transition-colors resize-none"
+                                placeholder="الشارع، رقم المبنى، الدور..."
+                            />
+                            {errors.address && (
+                                <p className="text-red-500 text-sm mt-1 text-right">{errors.address.message}</p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Notes */}
                     <div>
@@ -202,6 +294,7 @@ export default function CheckoutForm({ total, loading, onSubmit }: CheckoutFormP
                         تأكيد الطلب ({total} ج.م)
                     </button>
                 </form>
+                )}
             </div>
         </div>
     );
