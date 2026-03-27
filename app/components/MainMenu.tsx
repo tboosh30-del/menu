@@ -26,6 +26,7 @@ interface DbItem {
     current_price: number;
     category: string;
     image: string | null;
+    is_active: boolean;
 }
 
 type Category = 'all' | 'syrian' | 'broasted' | 'pasta' | 'extras';
@@ -40,7 +41,10 @@ const categories = [
 
 // Fetch function for React Query
 async function fetchMenuItems(): Promise<MenuItem[]> {
-    const { data, error } = await supabase.from('items').select('*');
+    const { data, error } = await supabase
+        .from('items')
+        .select('*')
+        .eq('is_active', true);
     if (error) {
         throw new Error(error.message);
     }
