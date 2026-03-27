@@ -15,7 +15,7 @@ export interface MenuItem {
     name: string;
     description: string;
     price: number;
-    category: 'syrian' | 'broasted' | 'pasta';
+    category: 'syrian' | 'broasted' | 'pasta' | 'extras';
     image: string;
 }
 
@@ -28,13 +28,14 @@ interface DbItem {
     image: string | null;
 }
 
-type Category = 'all' | 'syrian' | 'broasted' | 'pasta';
+type Category = 'all' | 'syrian' | 'broasted' | 'pasta' | 'extras';
 
 const categories = [
     { id: 'all', name: 'الكل' },
     { id: 'syrian', name: 'سوري' },
     { id: 'broasted', name: 'بروست' },
-    { id: 'pasta', name: 'مكرونة' }
+    { id: 'pasta', name: 'مكرونة' },
+    { id: 'extras', name: 'إضافات' }
 ];
 
 // Fetch function for React Query
@@ -50,9 +51,10 @@ async function fetchMenuItems(): Promise<MenuItem[]> {
         if (cleaned === 'مكرونة') return 'pasta';
         if (cleaned === 'بروست') return 'broasted';
         if (cleaned === 'سورى' || cleaned === 'سوري') return 'syrian';
+        if (cleaned === 'إضافات' || cleaned === 'اضافات') return 'extras';
         
         const lower = cleaned.toLowerCase();
-        if (['syrian', 'broasted', 'rice', 'pasta'].includes(lower)) {
+        if (['syrian', 'broasted', 'rice', 'pasta', 'extras'].includes(lower)) {
             return lower as MenuItem['category'];
         }
         return 'syrian';
